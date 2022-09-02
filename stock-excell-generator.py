@@ -17,8 +17,13 @@ class Stock:
 
         ticker = yf.Ticker(self.name)
         self.data = ticker.history(period=MAX)
+        self.data = self.data[::-1]
 
         print(self.data)
+
+    def getAverageTrend(years):
+        for i in enumerate(years):
+            pass
 
 def main():
     file = open("./stocklist.txt", "r")
