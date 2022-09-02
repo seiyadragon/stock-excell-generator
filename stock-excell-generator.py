@@ -12,6 +12,7 @@ class Stock:
     ticker = None
     name = None
     data = None
+    percent_up = None
 
     def __init__(self, name) -> None:
         self.name = name
@@ -24,9 +25,10 @@ class Stock:
             stock_list.pop(len(stock_list) - 1)
             return
 
+        self.percent_up = self.getAverageTrend(5)
+
         print(self.name + ": Was retrieved correctly!")
-        print(self.data)
-        print(self.name + " " + str(self.getAverageTrend(5)) + "%")
+        print(self.name + ": " + str(self.percent_up) + "%")
 
     def getAverageTrend(self, years):
         prices = []
@@ -42,20 +44,23 @@ class Stock:
                 print(self.name + ": Does not have sufficient data!")
                 has_enough_data = False
 
+        print(self.name + ": Months found --" + str(len(prices)))
+
         if has_enough_data:
             for i in range(years):
-                if prices[i] - prices[i + 12] > 0:
-                    prices_calculated.append(float(prices[i] - prices[i + 12]))
-                else: prices_calculated.append(float(prices[i] - prices[i + 12]))
+                if prices[i] - prices[i + 12 * (years - 1)] > 0:
+                    prices_calculated.append(1)
+                else: prices_calculated.append(-1)
 
             for i in range(len(prices_calculated)):
                 result += prices_calculated[i]
 
             return float(result / len(prices_calculated) * 100)
 
-        return 0
+        return "Not enough data!"
 
-            
+def exportToExcell():
+    pass            
 
 def main():
     file = open("./stocklist.txt", "r")
