@@ -17,6 +17,7 @@ class Stock:
 
     current_price = None
     average_growth = None
+    average_growth_percent = None
     average_dividend = None
     price_earning_ratio = None
 
@@ -41,9 +42,8 @@ class Stock:
         self.current_price = float(self.data.iloc[0].iat[3])
         print(self.name + ": $" + str(self.current_price))
 
-        self.average_growth = self.getAverageGrowth()
+        (self.average_growth, self.average_growth_percent) = self.getAverageGrowth()
         self.average_dividend = self.getAverageDividend()
-        print(self.ticker.actions)
 
         print(self.name + ": Was retrieved correctly!")
 
@@ -51,8 +51,9 @@ class Stock:
         years = self.years
         prices = []
         prices_calculated = []
+        percent_prices_calculated = []
         result = 0
-        range_offset = 0
+        result_percent = 0
         
         while_index = 0
         while len(prices) < years * 12:
@@ -69,17 +70,26 @@ class Stock:
 
         if len(prices) >= years * 12:
             for i in range(years):
+                val = prices[i] - prices[i + 12 * (years - 1)]
+                if val > 0:
+                    percent_prices_calculated.append(1)
+                else: percent_prices_calculated.append(0)
+
                 prices_calculated.append(prices[i] - prices[i + 12 * (years - 1)])
 
             for i in range(len(prices_calculated)):
                 result += prices_calculated[i]
 
+            for i in range(len(percent_prices_calculated)):
+                result_percent += percent_prices_calculated[i]
+
             print(self.name + ": " + str(result / len(prices_calculated)))
+            print(self.name + ": " + str(result_percent / len(percent_prices_calculated) * 100) + "%")
 
-            return result / len(prices_calculated)
+            return (result / len(prices_calculated), result_percent / len(percent_prices_calculated) * 100)
 
 
-        return "Not enough data!"
+        return (None, None)
 
     def getAverageDividend(self):
         tmp = self.ticker.dividends[::-1]
