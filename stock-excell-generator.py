@@ -7,6 +7,7 @@ from tkinter.tix import MAX
 import yfinance as yf
 import math
 import time
+from threading import Thread
 
 stock_list = []
 
@@ -15,18 +16,20 @@ class Stock:
     name = None
     years = None
     data = None
+    info = None
 
     current_price = None
     average_growth = None
     average_growth_percent = None
     average_dividend = None
     average_dividend_years = None
-    earnings_per_share = None
     price_earning_ratio = None
 
     total_yield = None
     potential_loss = None
     risk = None
+
+    loaded_correctly = False
 
     def __init__(self, name, years) -> None:
         self.name = name
@@ -34,7 +37,15 @@ class Stock:
 
         print("\nFetching data for: " + self.name)
 
-        self.ticker = yf.Ticker(self.name)
+        try:
+            self.ticker = yf.Ticker(self.name)
+        except:
+            stock_list.pop(len(stock_list) - 1)
+            return
+
+        thread = Thread(target=self.getInfo)
+        thread.start()
+
         self.data = self.ticker.history(period=MAX, interval="1mo")
         self.data = self.data[::-1]
 
@@ -48,11 +59,37 @@ class Stock:
         (self.average_growth, self.average_growth_percent) = self.getAverageGrowth()
         self.average_dividend = self.getAverageDividend()
 
+        if self.average_growth is None or self.average_dividend is None:
+            stock_list.pop(len(stock_list) - 1)
+            return 
+
         self.average_dividend_years = self.average_dividend * self.years
         print(self.name + ": Dividend " + str(self.years) + "yrs: $" + str(self.average_dividend_years))
 
-        self.getPER()
+        thread.join()
 
+        if self.info is None:
+            stock_list.pop(len(stock_list) - 1)
+            return
+
+        try:
+            self.price_earning_ratio = self.info["trailingPE"]
+            print(self.name + ": PER: " + str(self.price_earning_ratio))
+        except:
+            print(self.name + ": PER not found!")
+            stock_list.pop(len(stock_list) - 1)
+            return
+
+        self.total_yield = self.average_growth + self.average_dividend_years
+        print(self.name + ": Yield " + str(self.years) + "yrs: $" + str(self.total_yield))
+
+        self.potential_loss = self.current_price - self.average_dividend_years
+        print(self.name + ": Potential loss " + str(self.years) + "yrs: $" + str(self.potential_loss))
+
+        self.risk = self.potential_loss / self.total_yield
+        print(self.name + ": Risk " + str(self.years) + "yrs: " + str(self.risk))
+
+        self.loaded_correctly = True
         print(self.name + ": Was retrieved correctly!")
 
     def getAverageGrowth(self):
@@ -99,31 +136,23 @@ class Stock:
 
     def getAverageDividend(self):
         tmp = self.ticker.dividends[::-1]
-        result = 0
+        result = None
 
         if len(tmp) > 0 and len(tmp) >= self.years * 4:
+            result = 0
             for i in range(self.years * 4):
                 result += float(tmp.iloc[i])
 
-            result = (result / (self.years * 4))
+            result = (result / (self.years * 4) * 4)
+            print(self.name + ": Dividend: $" + str(result))
 
-        print(self.name + ": Dividend: $" + str(result))
+        if result is None:
+            print(self.name + ": No dividend data found!")
+
         return result
 
-    def getPER(self):
-        earnings = self.ticker.earnings
-        shares = self.ticker.shares
-
-        if not earnings.empty:
-            earnings = float(self.ticker.earnings[::-1].iloc[0].iat[1])
-
-        if not shares is None:
-            shares = float(self.ticker.shares[::-1].iloc[0].iloc[0])
-
-        print(self.ticker.info)
-        print(shares)
-
-
+    def getInfo(self):
+        self.info = self.ticker.get_info()
 
 def expandTime(seconds):
     minutes = 0
@@ -148,8 +177,8 @@ def main():
     stock_name_list = file.read().split("\n")
 
     for (index, value) in enumerate(stock_name_list):
-        if index > len(stock_name_list) / 150:
-            break
+        #if index > len(stock_name_list) / 150:
+        #    break
 
         stock_list.append(Stock(value, 5))
 
