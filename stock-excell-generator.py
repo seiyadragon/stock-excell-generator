@@ -10,6 +10,7 @@ import time
 from threading import Thread
 
 stock_list = []
+sorted_stock_list = []
 
 class Stock:
     ticker = None
@@ -22,6 +23,7 @@ class Stock:
     average_growth = None
     average_growth_percent = None
     average_dividend = None
+    dividend_percent = None
     average_dividend_years = None
     price_earning_ratio = None
 
@@ -61,7 +63,15 @@ class Stock:
 
         if self.average_growth is None or self.average_dividend is None:
             stock_list.pop(len(stock_list) - 1)
-            return 
+            return
+
+        if self.average_growth < 0 or self.average_growth_percent < 50:
+            print(self.name + ": Average grow is negative or growth% too low!")
+            stock_list.pop(len(stock_list) - 1)
+            return
+
+        self.dividend_percent = self.average_dividend / self.current_price * 100
+        print(self.name + ": Dividend%: " + str(self.dividend_percent) + "%")
 
         self.average_dividend_years = self.average_dividend * self.years
         print(self.name + ": Dividend " + str(self.years) + "yrs: $" + str(self.average_dividend_years))
@@ -177,14 +187,32 @@ def main():
     stock_name_list = file.read().split("\n")
 
     for (index, value) in enumerate(stock_name_list):
-        #if index > len(stock_name_list) / 150:
-        #    break
+        if index > len(stock_name_list) / 150:
+            break
 
         stock_list.append(Stock(value, 5))
 
     (hours, minutes, seconds) = expandTime(time.time() - last_time)
 
+    while len(sorted_stock_list) < len(stock_list):
+        lowest_risk = 0
+        lowest_risk_index = 0
+        for i in range(len(stock_list)):
+            if lowest_risk == 0:
+                lowest_risk = stock_list[i].risk
+                lowest_risk_index = i
+            
+            if lowest_risk > float(stock_list[i].risk):
+                if len(sorted_stock_list) != 0 and lowest_risk > sorted_stock_list[i].risk:
+                    lowest_risk = stock_list[i].risk
+                    lowest_risk_index = i
+
+        sorted_stock_list.append(stock_list[lowest_risk_index])
+
+
     print("\nProgram finished in " + str(hours) + " hrs " + str(minutes) + " min " + str(seconds) + " seconds!")
+    print("Loaded " + str(len(stock_list)) + " stocks!")
+    print(str(sorted_stock_list))
 
 if __name__ == "__main__":
     main()
