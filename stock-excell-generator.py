@@ -6,6 +6,7 @@ import sys
 from tkinter.tix import MAX
 import yfinance as yf
 import math
+import time
 
 stock_list = []
 
@@ -19,6 +20,7 @@ class Stock:
     average_growth = None
     average_growth_percent = None
     average_dividend = None
+    average_dividend_years = None
     price_earning_ratio = None
 
     total_yield = None
@@ -40,10 +42,13 @@ class Stock:
             return
         
         self.current_price = float(self.data.iloc[0].iat[3])
-        print(self.name + ": $" + str(self.current_price))
+        print(self.name + ": Price: $" + str(self.current_price))
 
         (self.average_growth, self.average_growth_percent) = self.getAverageGrowth()
         self.average_dividend = self.getAverageDividend()
+
+        self.average_dividend_years = self.average_dividend * self.years
+        print(self.name + ": Dividend " + str(self.years) + "yrs: $" + str(self.average_dividend_years))
 
         print(self.name + ": Was retrieved correctly!")
 
@@ -66,8 +71,6 @@ class Stock:
             if not math.isnan(tmp):
                 prices.append(tmp)
 
-        print(self.name + ": Months found --" + str(len(prices)))
-
         if len(prices) >= years * 12:
             for i in range(years):
                 val = prices[i] - prices[i + 12 * (years - 1)]
@@ -83,12 +86,12 @@ class Stock:
             for i in range(len(percent_prices_calculated)):
                 result_percent += percent_prices_calculated[i]
 
-            print(self.name + ": " + str(result / len(prices_calculated)))
-            print(self.name + ": " + str(result_percent / len(percent_prices_calculated) * 100) + "%")
+            print(self.name + ": Growth " + str(years) + "yrs: $" + str(result / len(prices_calculated)))
+            print(self.name + ": Growth% " + str(years) + "yrs: " + str(result_percent / len(percent_prices_calculated) * 100) + "%")
 
             return (result / len(prices_calculated), result_percent / len(percent_prices_calculated) * 100)
 
-
+        print(self.name + ": Not enough data found!")
         return (None, None)
 
     def getAverageDividend(self):
@@ -101,19 +104,43 @@ class Stock:
 
             result = (result / (self.years * 4))
 
-        print(self.name + ": " + str(result))
+        print(self.name + ": Dividend: $" + str(result))
         return result
 
 def exportToExcell():
     pass            
 
+def expandTime(seconds):
+    minutes = 0
+    hours = 0
+
+    seconds = int(seconds)
+
+    if seconds > 60:
+        minutes = int(seconds / 60)
+        seconds = int(seconds % 60)
+
+    if minutes > 60:
+        hours = int(minutes / 60)
+        minutes = int(minutes % 60)
+
+    return (hours, minutes, seconds)
+
 def main():
+    last_time = time.time()
+
     file = open("./stocklist.txt", "r")
     stock_name_list = file.read().split("\n")
 
     for (index, value) in enumerate(stock_name_list):
+        if index > len(stock_name_list) / 150:
+            break
+
         stock_list.append(Stock(value, 5))
-        
+
+    (hours, minutes, seconds) = expandTime(time.time() - last_time)
+
+    print("\nProgram finished in " + str(hours) + " hrs " + str(minutes) + " min " + str(seconds) + " seconds!")
 
 if __name__ == "__main__":
     main()
