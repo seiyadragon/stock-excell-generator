@@ -21,6 +21,7 @@ class Stock:
     average_growth_percent = None
     average_dividend = None
     average_dividend_years = None
+    earnings_per_share = None
     price_earning_ratio = None
 
     total_yield = None
@@ -40,7 +41,7 @@ class Stock:
         if self.data.empty:
             stock_list.pop(len(stock_list) - 1)
             return
-        
+
         self.current_price = float(self.data.iloc[0].iat[3])
         print(self.name + ": Price: $" + str(self.current_price))
 
@@ -49,6 +50,8 @@ class Stock:
 
         self.average_dividend_years = self.average_dividend * self.years
         print(self.name + ": Dividend " + str(self.years) + "yrs: $" + str(self.average_dividend_years))
+
+        self.getPER()
 
         print(self.name + ": Was retrieved correctly!")
 
@@ -107,8 +110,20 @@ class Stock:
         print(self.name + ": Dividend: $" + str(result))
         return result
 
-def exportToExcell():
-    pass            
+    def getPER(self):
+        earnings = self.ticker.earnings
+        shares = self.ticker.shares
+
+        if not earnings.empty:
+            earnings = float(self.ticker.earnings[::-1].iloc[0].iat[1])
+
+        if not shares is None:
+            shares = float(self.ticker.shares[::-1].iloc[0].iloc[0])
+
+        print(self.ticker.info)
+        print(shares)
+
+
 
 def expandTime(seconds):
     minutes = 0
