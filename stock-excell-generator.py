@@ -200,8 +200,8 @@ def main():
     stock_name_list = file.read().split("\n")
 
     for (index, value) in enumerate(stock_name_list):
-        if index > len(stock_name_list) / 250:
-            break
+        #if index > len(stock_name_list) / 250:
+        #    break
 
         Stock(value, 5)
 
@@ -209,7 +209,6 @@ def main():
 
     stock_list.sort(key=getSortKey)
 
-    print("\nProgram finished in " + str(hours) + " hrs " + str(minutes) + " min " + str(seconds) + " seconds!")
     print("Loaded " + str(len(stock_list)) + " stocks!")
 
     array_stocks = []
@@ -219,13 +218,13 @@ def main():
 
     dataframe = pd.DataFrame(array_stocks, columns=[
         "Name",
-        "Years Viewed",
+        "Years",
         "Price",
-        "Average Growth",
-        "Average Growth %",
-        "Average Dividend",
+        "Growth",
+        "Growth %",
+        "Dividend",
         "Dividend %",
-        "Dividend * Years",
+        "Dividend Years",
         "PER",
         "Potential Earning",
         "Potential Loss",
@@ -237,13 +236,15 @@ def main():
     dataframe.to_excel(excel_writer, sheet_name="stocks", engine="xlsxwriter")
 
     for column in dataframe:
-        column_width = max(dataframe[column].astype(str).map(len).max(), len(column) + 5)
+        column_width = max(dataframe[column].astype(str).map(len).max(), len(column)) + 10
         col_idx = dataframe.columns.get_loc(column)
         excel_writer.sheets["stocks"].set_column(col_idx, col_idx, column_width)
 
     excel_writer.save()
 
+    print("\nProgram finished in " + str(hours) + " hrs " + str(minutes) + " min " + str(seconds) + " seconds!")
+
 if __name__ == "__main__":
-    os.system("pip install yfinance xlsxwriter")
+    os.system("pip install yfinance xlsxwriter --user")
 
     main()
