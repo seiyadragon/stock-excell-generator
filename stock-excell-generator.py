@@ -8,7 +8,6 @@ from threading import Thread
 import os
 
 stock_list = []
-sorted_stock_list = []
 
 class Stock:
     ticker = None
