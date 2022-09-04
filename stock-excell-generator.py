@@ -1,13 +1,11 @@
 from cmath import isnan, log
-from concurrent.futures import thread
-from inspect import getargvalues
-from pickle import FALSE, TRUE
-import sys
+import pandas as pd
 from tkinter.tix import MAX
 import yfinance as yf
 import math
 import time
 from threading import Thread
+import os
 
 stock_list = []
 sorted_stock_list = []
@@ -31,8 +29,6 @@ class Stock:
     potential_loss = 0
     risk = 0
 
-    loaded_correctly = False
-
     def __init__(self, name, years) -> None:
         self.name = name
         self.years = years
@@ -48,8 +44,6 @@ class Stock:
         self.data = self.data[::-1]
 
         if self.data.empty:
-            if self in stock_list:
-                stock_list.remove(self)
             return
 
         self.current_price = float(self.data.iloc[0].iat[3])
@@ -59,14 +53,10 @@ class Stock:
         self.average_dividend = self.getAverageDividend()
 
         if self.average_growth is None or self.average_dividend is None:
-            if self in stock_list:
-                stock_list.remove(self)
             return
 
         if self.average_growth < 0 or self.average_growth_percent < 50:
             print(self.name + ": Average grow is negative or growth% too low!")
-            if self in stock_list:
-                stock_list.remove(self)
             return
 
         self.dividend_percent = self.average_dividend / self.current_price * 100
@@ -78,8 +68,6 @@ class Stock:
         thread.join()
 
         if self.info is None:
-            if self in stock_list:
-                stock_list.remove(self)
             return
 
         try:
@@ -87,8 +75,10 @@ class Stock:
             print(self.name + ": PER: " + str(self.price_earning_ratio))
         except:
             print(self.name + ": PER not found!")
-            if self in stock_list:
-                stock_list.remove(self)
+            return
+        
+        if self.price_earning_ratio > 25:
+            print(self.name + ": PER too high!")
             return
 
         self.total_yield = self.average_growth + self.average_dividend_years
@@ -101,11 +91,9 @@ class Stock:
         print(self.name + ": Risk " + str(self.years) + "yrs: " + str(self.risk))
 
         if self.risk == 0:
-            if self in stock_list:
-                stock_list.remove(self)
             return
 
-        self.loaded_correctly = True
+        stock_list.append(self)
         print(self.name + ": Was retrieved correctly!")
 
     def getAverageGrowth(self):
@@ -170,6 +158,22 @@ class Stock:
     def getInfo(self):
         self.info = self.ticker.get_info()
 
+    def toArray(self):
+        return [
+            self.name,
+            self.years,
+            round(self.current_price, 2),
+            round(self.average_growth, 2),
+            round(self.average_growth_percent, 2),
+            round(self.average_dividend, 2),
+            round(self.dividend_percent, 2),
+            round(self.average_dividend_years , 2),
+            round(self.price_earning_ratio, 2),
+            round(self.total_yield, 2),
+            round(self.potential_loss, 2),
+            round(self.risk, 2)
+        ]
+
 def expandTime(seconds):
     minutes = 0
     hours = 0
@@ -199,19 +203,47 @@ def main():
         if index > len(stock_name_list) / 250:
             break
 
-        stock_list.append(Stock(value, 5))
+        Stock(value, 5)
 
     (hours, minutes, seconds) = expandTime(time.time() - last_time)
 
-    for (i, stock) in enumerate(stock_list):
-        if stock.loaded_correctly:
-            stock_list.remove(stock)
-
-    stock_list.sort(reverse=True, key=getSortKey)
+    stock_list.sort(key=getSortKey)
 
     print("\nProgram finished in " + str(hours) + " hrs " + str(minutes) + " min " + str(seconds) + " seconds!")
     print("Loaded " + str(len(stock_list)) + " stocks!")
-    print(str(stock_list[0].risk))
+
+    array_stocks = []
+
+    for (index, value) in enumerate(stock_list):
+        array_stocks.append(value.toArray())
+
+    dataframe = pd.DataFrame(array_stocks, columns=[
+        "Name",
+        "Years Viewed",
+        "Price",
+        "Average Growth",
+        "Average Growth %",
+        "Average Dividend",
+        "Dividend %",
+        "Dividend * Years",
+        "PER",
+        "Potential Earning",
+        "Potential Loss",
+        "Risk"
+    ])
+
+
+    excel_writer = pd.ExcelWriter("stocklist.xlsx")
+    dataframe.to_excel(excel_writer, sheet_name="stocks", engine="xlsxwriter")
+
+    for column in dataframe:
+        column_width = max(dataframe[column].astype(str).map(len).max(), len(column) + 5)
+        col_idx = dataframe.columns.get_loc(column)
+        excel_writer.sheets["stocks"].set_column(col_idx, col_idx, column_width)
+
+    excel_writer.save()
 
 if __name__ == "__main__":
+    os.system("pip install yfinance xlsxwriter")
+
     main()
