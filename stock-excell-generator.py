@@ -19,17 +19,17 @@ class Stock:
     data = None
     info = None
 
-    current_price = None
-    average_growth = None
-    average_growth_percent = None
-    average_dividend = None
-    dividend_percent = None
-    average_dividend_years = None
-    price_earning_ratio = None
+    current_price = 0
+    average_growth = 0
+    average_growth_percent = 0
+    average_dividend = 0
+    dividend_percent = 0
+    average_dividend_years = 0
+    price_earning_ratio = 0
 
-    total_yield = None
-    potential_loss = None
-    risk = None
+    total_yield = 0
+    potential_loss = 0
+    risk = 0
 
     loaded_correctly = False
 
@@ -39,11 +39,7 @@ class Stock:
 
         print("\nFetching data for: " + self.name)
 
-        try:
-            self.ticker = yf.Ticker(self.name)
-        except:
-            stock_list.pop(len(stock_list) - 1)
-            return
+        self.ticker = yf.Ticker(self.name)
 
         thread = Thread(target=self.getInfo)
         thread.start()
@@ -52,7 +48,8 @@ class Stock:
         self.data = self.data[::-1]
 
         if self.data.empty:
-            stock_list.pop(len(stock_list) - 1)
+            if self in stock_list:
+                stock_list.remove(self)
             return
 
         self.current_price = float(self.data.iloc[0].iat[3])
@@ -62,12 +59,14 @@ class Stock:
         self.average_dividend = self.getAverageDividend()
 
         if self.average_growth is None or self.average_dividend is None:
-            stock_list.pop(len(stock_list) - 1)
+            if self in stock_list:
+                stock_list.remove(self)
             return
 
         if self.average_growth < 0 or self.average_growth_percent < 50:
             print(self.name + ": Average grow is negative or growth% too low!")
-            stock_list.pop(len(stock_list) - 1)
+            if self in stock_list:
+                stock_list.remove(self)
             return
 
         self.dividend_percent = self.average_dividend / self.current_price * 100
@@ -79,7 +78,8 @@ class Stock:
         thread.join()
 
         if self.info is None:
-            stock_list.pop(len(stock_list) - 1)
+            if self in stock_list:
+                stock_list.remove(self)
             return
 
         try:
@@ -87,7 +87,8 @@ class Stock:
             print(self.name + ": PER: " + str(self.price_earning_ratio))
         except:
             print(self.name + ": PER not found!")
-            stock_list.pop(len(stock_list) - 1)
+            if self in stock_list:
+                stock_list.remove(self)
             return
 
         self.total_yield = self.average_growth + self.average_dividend_years
@@ -98,6 +99,11 @@ class Stock:
 
         self.risk = self.potential_loss / self.total_yield
         print(self.name + ": Risk " + str(self.years) + "yrs: " + str(self.risk))
+
+        if self.risk == 0:
+            if self in stock_list:
+                stock_list.remove(self)
+            return
 
         self.loaded_correctly = True
         print(self.name + ": Was retrieved correctly!")
@@ -180,6 +186,9 @@ def expandTime(seconds):
 
     return (hours, minutes, seconds)
 
+def getSortKey(stock):
+    return stock.risk
+
 def main():
     last_time = time.time()
 
@@ -187,32 +196,22 @@ def main():
     stock_name_list = file.read().split("\n")
 
     for (index, value) in enumerate(stock_name_list):
-        if index > len(stock_name_list) / 150:
+        if index > len(stock_name_list) / 250:
             break
 
         stock_list.append(Stock(value, 5))
 
     (hours, minutes, seconds) = expandTime(time.time() - last_time)
 
-    while len(sorted_stock_list) < len(stock_list):
-        lowest_risk = 0
-        lowest_risk_index = 0
-        for i in range(len(stock_list)):
-            if lowest_risk == 0:
-                lowest_risk = stock_list[i].risk
-                lowest_risk_index = i
-            
-            if lowest_risk > float(stock_list[i].risk):
-                if len(sorted_stock_list) != 0 and lowest_risk > sorted_stock_list[i].risk:
-                    lowest_risk = stock_list[i].risk
-                    lowest_risk_index = i
+    for (i, stock) in enumerate(stock_list):
+        if stock.loaded_correctly:
+            stock_list.remove(stock)
 
-        sorted_stock_list.append(stock_list[lowest_risk_index])
-
+    stock_list.sort(reverse=True, key=getSortKey)
 
     print("\nProgram finished in " + str(hours) + " hrs " + str(minutes) + " min " + str(seconds) + " seconds!")
     print("Loaded " + str(len(stock_list)) + " stocks!")
-    print(str(sorted_stock_list))
+    print(str(stock_list[0].risk))
 
 if __name__ == "__main__":
     main()
