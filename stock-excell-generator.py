@@ -64,7 +64,7 @@ class Stock:
 
         try:
             self.dividend_percent = self.info["trailingAnnualDividendYield"]
-            print(self.name + ": Dividend%: " + str(self.dividend_percent) + "%")
+            print(self.name + ": Dividend%: " + str(self.dividend_percent * 100) + "%")
         except:
             print(self.name + ": Dividend not found!")
             return
@@ -133,18 +133,16 @@ class Stock:
                 val = prices[i] - prices[i + (12 * years)]
                 if val > 0:
                     percent_prices_calculated.append(1)
-                elif val == 0:
-                    percent_prices_calculated.append(0.5)
-                elif val < 0:
+                else:
                     percent_prices_calculated.append(0)
 
                 prices_calculated.append(val)
 
             for i in range(years * 12):
-                result += prices_calculated[i]
+                result += float(prices_calculated[i])
 
             for i in range(years * 12):
-                result_percent += percent_prices_calculated[i]
+                result_percent += float(percent_prices_calculated[i])
 
             print(self.name + ": Growth " + str(years) + "yrs: $" + str(result / (years * 12)))
             print(self.name + ": Growth% " + str(years) + "yrs: " + str(result_percent / (years * 12) * 100) + "%")
