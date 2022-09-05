@@ -39,7 +39,7 @@ class Stock:
         thread = Thread(target=self.getInfo)
         thread.start()
 
-        self.data = self.ticker.history(period=MAX, interval="1mo")
+        self.data = self.ticker.history(period=MAX, interval="1mo", rounding=True)
         self.data = self.data[::-1]
 
         if self.data.empty:
@@ -117,36 +117,39 @@ class Stock:
         result = 0
         result_percent = 0
         
-        while_index = 0
-        while len(prices) < years * 2 * 12:
+        while_index = 1
+        while len(prices) < (years * 2) * 12:
             try:
                 tmp = float(self.data.iloc[while_index].iat[3])
             except: break
-            
-            while_index += 1
 
-            if not math.isnan(tmp):
+            if not math.isnan(tmp) and while_index > 0:
                 prices.append(tmp)
 
-        if len(prices) >= years * 2 * 12:
+            while_index += 1
+
+        if len(prices) >= (years * 2) * 12:
             for i in range(years * 12):
-                val = prices[i] - prices[i + 12 * years]
+                val = prices[i] - prices[i + (12 * years)]
                 if val > 0:
                     percent_prices_calculated.append(1)
-                else: percent_prices_calculated.append(0)
+                elif val == 0:
+                    percent_prices_calculated.append(0.5)
+                elif val < 0:
+                    percent_prices_calculated.append(0)
 
                 prices_calculated.append(val)
 
-            for i in range(len(prices_calculated)):
+            for i in range(years * 12):
                 result += prices_calculated[i]
 
-            for i in range(len(percent_prices_calculated)):
+            for i in range(years * 12):
                 result_percent += percent_prices_calculated[i]
 
-            print(self.name + ": Growth " + str(years) + "yrs: $" + str(result / len(prices_calculated)))
-            print(self.name + ": Growth% " + str(years) + "yrs: " + str(result_percent / len(percent_prices_calculated) * 100) + "%")
+            print(self.name + ": Growth " + str(years) + "yrs: $" + str(result / (years * 12)))
+            print(self.name + ": Growth% " + str(years) + "yrs: " + str(result_percent / (years * 12) * 100) + "%")
 
-            return (result / len(prices_calculated), result_percent / len(percent_prices_calculated) * 100)
+            return (result / (years * 12), result_percent / (years * 12) * 100)
 
         print(self.name + ": Not enough data found!")
         return (None, None)
@@ -196,8 +199,8 @@ def main():
     stock_name_list = file.read().split("\n")
 
     for (index, value) in enumerate(stock_name_list):
-        #if index > len(stock_name_list) / 150:
-        #    break
+        if index > len(stock_name_list) / 150:
+            break
 
         Stock(value, 5)
 
