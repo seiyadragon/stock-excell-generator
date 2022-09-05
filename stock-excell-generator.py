@@ -49,20 +49,13 @@ class Stock:
         print(self.name + ": Price: $" + str(self.current_price))
 
         (self.average_growth, self.average_growth_percent) = self.getAverageGrowth()
-        self.average_dividend = self.getAverageDividend()
 
-        if self.average_growth is None or self.average_dividend is None:
+        if self.average_growth is None:
             return
 
-        if self.average_growth < 0 or self.average_growth_percent < 50:
+        if self.average_growth < 0 or self.average_growth_percent < 80:
             print(self.name + ": Average grow is negative or growth% too low!")
             return
-
-        self.dividend_percent = self.average_dividend / self.current_price * 100
-        print(self.name + ": Dividend%: " + str(self.dividend_percent) + "%")
-
-        self.average_dividend_years = self.average_dividend * self.years
-        print(self.name + ": Dividend " + str(self.years) + "yrs: $" + str(self.average_dividend_years))
 
         thread.join()
 
@@ -70,12 +63,33 @@ class Stock:
             return
 
         try:
-            self.price_earning_ratio = self.info["trailingPE"]
+            self.dividend_percent = self.info["trailingAnnualDividendYield"]
+            print(self.name + ": Dividend%: " + str(self.dividend_percent) + "%")
+        except:
+            print(self.name + ": Dividend not found!")
+            return
+
+        if self.dividend_percent == 0 or self.dividend_percent is None:
+            print(self.name + ": Dividend not found!")
+            return
+
+        self.average_dividend = self.current_price * self.dividend_percent
+        print(self.name + ": Dividend: $" + str(self.average_dividend))
+
+        self.average_dividend_years = self.average_dividend * self.years
+        print(self.name + ": Dividend " + str(self.years) + "yrs: $" + str(self.average_dividend_years))
+
+        try:
+            self.price_earning_ratio = self.info["forwardPE"]
             print(self.name + ": PER: " + str(self.price_earning_ratio))
         except:
             print(self.name + ": PER not found!")
             return
         
+        if self.price_earning_ratio is None:
+            print(self.name + ": PER not found!")
+            return
+
         if self.price_earning_ratio > 25:
             print(self.name + ": PER too high!")
             return
@@ -104,7 +118,7 @@ class Stock:
         result_percent = 0
         
         while_index = 0
-        while len(prices) < years * 12:
+        while len(prices) < years * 2 * 12:
             try:
                 tmp = float(self.data.iloc[while_index].iat[3])
             except: break
@@ -114,14 +128,14 @@ class Stock:
             if not math.isnan(tmp):
                 prices.append(tmp)
 
-        if len(prices) >= years * 12:
-            for i in range(years):
-                val = prices[i] - prices[i + 12 * (years - 1)]
+        if len(prices) >= years * 2 * 12:
+            for i in range(years * 12):
+                val = prices[i] - prices[i + 12 * years]
                 if val > 0:
                     percent_prices_calculated.append(1)
                 else: percent_prices_calculated.append(0)
 
-                prices_calculated.append(prices[i] - prices[i + 12 * (years - 1)])
+                prices_calculated.append(val)
 
             for i in range(len(prices_calculated)):
                 result += prices_calculated[i]
@@ -137,23 +151,6 @@ class Stock:
         print(self.name + ": Not enough data found!")
         return (None, None)
 
-    def getAverageDividend(self):
-        tmp = self.ticker.dividends[::-1]
-        result = None
-
-        if len(tmp) > 0 and len(tmp) >= self.years * 4:
-            result = 0
-            for i in range(self.years * 4):
-                result += float(tmp.iloc[i])
-
-            result = (result / (self.years * 4) * 4)
-            print(self.name + ": Dividend: $" + str(result))
-
-        if result is None:
-            print(self.name + ": No dividend data found!")
-
-        return result
-
     def getInfo(self):
         self.info = self.ticker.get_info()
 
@@ -165,7 +162,7 @@ class Stock:
             round(self.average_growth, 2),
             round(self.average_growth_percent, 2),
             round(self.average_dividend, 2),
-            round(self.dividend_percent, 2),
+            round(self.dividend_percent * 100, 2),
             round(self.average_dividend_years , 2),
             round(self.price_earning_ratio, 2),
             round(self.total_yield, 2),
@@ -199,7 +196,7 @@ def main():
     stock_name_list = file.read().split("\n")
 
     for (index, value) in enumerate(stock_name_list):
-        #if index > len(stock_name_list) / 250:
+        #if index > len(stock_name_list) / 150:
         #    break
 
         Stock(value, 5)
